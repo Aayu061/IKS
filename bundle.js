@@ -483,11 +483,15 @@
       this.audioCtx = null;
       this.masterGain = null;
       this.isPlaying = false;
-      this.playbackTimeouts = [];
       this.tempoBpm = 110;
       this.volume = 0.4;
       this.pulseListeners = [];
+      this._scheduledCallbacks = [];
+      this._rafId = null;
+      this._wallOrigin = 0;
+      this._audioOrigin = 0;
     }
+    // ─── Initialisation ────────────────────────────────────────────────────────
     init() {
       if (!this.audioCtx) {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -500,6 +504,7 @@
         this.audioCtx.resume();
       }
     }
+    // ─── Controls ──────────────────────────────────────────────────────────────
     setVolume(val) {
       this.volume = Math.max(0, Math.min(1, val));
       if (this.masterGain && this.audioCtx) {
@@ -515,64 +520,171 @@
     notifyPulse(type, durationMs) {
       this.pulseListeners.forEach((fn) => fn(type, durationMs));
     }
+    // ─── Single Tone ───────────────────────────────────────────────────────────
     /**
-     * Play a single tone
-     * @param {'L'|'G'} type 
-     * @param {number} timeOffset - in seconds from now
+     * Play a single tone immediately (or at a pre-scheduled audio offset).
+     * Uses the Web Audio hardware clock — no setTimeout, no drift.
+     *
+     * @param {'L'|'G'} type
+     * @param {number}  audioTimeOffset - seconds from audioCtx.currentTime
      */
-    playTone(type, timeOffset = 0) {
+    playTone(type, audioTimeOffset = 0) {
       this.init();
       if (!this.audioCtx || this.volume <= 1e-3) return;
       const isGuru = type === "G";
       const freq = isGuru ? 440 : 880;
-      const baseDuration = 60 / this.tempoBpm;
-      const duration = isGuru ? baseDuration * 0.45 : baseDuration * 0.22;
-      const now = this.audioCtx.currentTime + timeOffset;
+      const beatSec = 60 / this.tempoBpm;
+      const duration = isGuru ? beatSec * 0.45 : beatSec * 0.22;
+      const startAt = this.audioCtx.currentTime + audioTimeOffset;
       const osc = this.audioCtx.createOscillator();
       const gain = this.audioCtx.createGain();
       osc.type = isGuru ? "triangle" : "sine";
-      osc.frequency.setValueAtTime(freq, now);
-      gain.gain.setValueAtTime(1e-4, now);
-      gain.gain.linearRampToValueAtTime(isGuru ? 0.45 : 0.35, now + 8e-3);
-      gain.gain.exponentialRampToValueAtTime(1e-4, now + duration);
+      osc.frequency.setValueAtTime(freq, startAt);
+      gain.gain.setValueAtTime(1e-4, startAt);
+      gain.gain.linearRampToValueAtTime(isGuru ? 0.45 : 0.35, startAt + 8e-3);
+      gain.gain.exponentialRampToValueAtTime(1e-4, startAt + duration);
       osc.connect(gain);
       gain.connect(this.masterGain);
-      osc.start(now);
-      osc.stop(now + duration + 0.05);
-      this.notifyPulse(type, duration * 1e3);
+      osc.start(startAt);
+      osc.stop(startAt + duration + 0.05);
+      if (audioTimeOffset === 0) {
+        this.notifyPulse(type, duration * 1e3);
+      }
     }
+    // ─── Sequence Playback ─────────────────────────────────────────────────────
     /**
-     * Play a full meter sequence with visual step callbacks
-     * @param {Array<'L'|'G'>} pattern 
-     * @param {Function} onStepCallback - Called with (index, syllable) on each beat
-     * @param {Function} onCompleteCallback - Called when pattern finishes
+     * Play a full meter sequence.
+     *
+     * Audio scheduling: ALL tones are pre-scheduled onto the hardware audio clock
+     * in one pass using audioCtx offsets — zero jitter regardless of main-thread load.
+     *
+     * UI callbacks: scheduled via a high-resolution lookahead loop that uses
+     * performance.now() correlated with audioCtx.currentTime so visual pulses
+     * land on the correct animation frame.
+     *
+     * @param {Array<'L'|'G'>} pattern
+     * @param {Function}       onStepCallback    - (index, syllable) on each beat
+     * @param {Function}       onCompleteCallback - called after last beat + tail
      */
     playSequence(pattern, onStepCallback = null, onCompleteCallback = null) {
       this.stop();
       this.init();
       this.isPlaying = true;
-      const beatDurationMs = 60 / this.tempoBpm * 1e3;
-      let accumulatedTimeMs = 0;
+      const beatSec = 60 / this.tempoBpm;
+      this._audioOrigin = this.audioCtx.currentTime;
+      this._wallOrigin = performance.now();
+      this._scheduledCallbacks = [];
+      let audioOffset = 0;
       pattern.forEach((syl, idx) => {
-        const sylDurationMs = syl === "G" ? beatDurationMs * 1.5 : beatDurationMs * 0.9;
-        const timeoutId = setTimeout(() => {
-          if (!this.isPlaying) return;
-          this.playTone(syl);
-          if (onStepCallback) onStepCallback(idx, syl);
-        }, accumulatedTimeMs);
-        this.playbackTimeouts.push(timeoutId);
-        accumulatedTimeMs += sylDurationMs;
+        const sylSec = syl === "G" ? beatSec * 1.5 : beatSec * 0.9;
+        this._scheduleAudioTone(syl, audioOffset);
+        const capturedIdx = idx;
+        const capturedSyl = syl;
+        const capturedAudio = this._audioOrigin + audioOffset;
+        const capturedDurMs = sylSec * 1e3;
+        this._scheduledCallbacks.push({
+          audioTime: capturedAudio,
+          fn: () => {
+            if (!this.isPlaying) return;
+            this.notifyPulse(capturedSyl, capturedDurMs);
+            if (onStepCallback) onStepCallback(capturedIdx, capturedSyl);
+          }
+        });
+        audioOffset += sylSec;
       });
-      const completionTimeout = setTimeout(() => {
-        this.isPlaying = false;
-        if (onCompleteCallback) onCompleteCallback();
-      }, accumulatedTimeMs + 200);
-      this.playbackTimeouts.push(completionTimeout);
+      const completionAudioTime = this._audioOrigin + audioOffset + 0.2;
+      this._scheduledCallbacks.push({
+        audioTime: completionAudioTime,
+        fn: () => {
+          this.isPlaying = false;
+          if (onCompleteCallback) onCompleteCallback();
+        }
+      });
+      this._pumpCallbacks();
     }
+    // ─── Internal: Audio Tone Scheduling (hardware clock) ──────────────────────
+    /**
+     * Schedule a tone at a precise offset from the audio clock origin.
+     * This runs synchronously — all tones are committed to the audio graph
+     * before the first beat sounds, so there is no setTimeout involved.
+     */
+    _scheduleAudioTone(type, audioOffset) {
+      if (!this.audioCtx || this.volume <= 1e-3) return;
+      const isGuru = type === "G";
+      const freq = isGuru ? 440 : 880;
+      const beatSec = 60 / this.tempoBpm;
+      const duration = isGuru ? beatSec * 0.45 : beatSec * 0.22;
+      const startAt = this._audioOrigin + audioOffset;
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+      osc.type = isGuru ? "triangle" : "sine";
+      osc.frequency.setValueAtTime(freq, startAt);
+      gain.gain.setValueAtTime(1e-4, startAt);
+      gain.gain.linearRampToValueAtTime(isGuru ? 0.45 : 0.35, startAt + 8e-3);
+      gain.gain.exponentialRampToValueAtTime(1e-4, startAt + duration);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(startAt);
+      osc.stop(startAt + duration + 0.05);
+    }
+    // ─── Internal: High-Resolution UI Callback Pump ────────────────────────────
+    /**
+     * Runs a requestAnimationFrame loop that fires queued UI callbacks at the
+     * precise moment the audio clock reaches their scheduled audioTime.
+     *
+     * Correlation formula:
+     *   wallElapsed = performance.now() - _wallOrigin          (ms, high-res)
+     *   audioElapsed = audioCtx.currentTime - _audioOrigin     (s, hardware)
+     *
+     * We compare against audioCtx.currentTime (not performance.now()) so the
+     * UI callbacks stay locked to the same clock as the audio output, making
+     * them resilient to main-thread jank.
+     */
+    _pumpCallbacks() {
+      if (!this.isPlaying || this._scheduledCallbacks.length === 0) {
+        this._rafId = null;
+        return;
+      }
+      const now = this.audioCtx.currentTime;
+      const LOOKAHEAD_S = 5e-3;
+      let i = 0;
+      while (i < this._scheduledCallbacks.length) {
+        const cb = this._scheduledCallbacks[i];
+        if (now + LOOKAHEAD_S >= cb.audioTime) {
+          cb.fn();
+          this._scheduledCallbacks.splice(i, 1);
+        } else {
+          i++;
+        }
+      }
+      this._rafId = requestAnimationFrame(() => this._pumpCallbacks());
+    }
+    // ─── Stop ──────────────────────────────────────────────────────────────────
     stop() {
       this.isPlaying = false;
-      this.playbackTimeouts.forEach((t) => clearTimeout(t));
-      this.playbackTimeouts = [];
+      if (this._rafId !== null) {
+        cancelAnimationFrame(this._rafId);
+        this._rafId = null;
+      }
+      this._scheduledCallbacks = [];
+    }
+    // ─── Diagnostics ───────────────────────────────────────────────────────────
+    /**
+     * Returns a snapshot of timing precision info for debugging.
+     * Wall-clock drift = difference between performance.now() elapsed
+     * and audioCtx.currentTime elapsed since playback started.
+     */
+    getTimingDiagnostics() {
+      if (!this.audioCtx || !this._wallOrigin) return null;
+      const wallElapsedMs = performance.now() - this._wallOrigin;
+      const audioElapsedMs = (this.audioCtx.currentTime - this._audioOrigin) * 1e3;
+      return {
+        wallElapsedMs: +wallElapsedMs.toFixed(3),
+        audioElapsedMs: +audioElapsedMs.toFixed(3),
+        driftMs: +(wallElapsedMs - audioElapsedMs).toFixed(3),
+        audioCtxTime: +this.audioCtx.currentTime.toFixed(6),
+        performanceNow: +performance.now().toFixed(3)
+      };
     }
   };
   var rhythmSynth = new RhythmSynthesizer();
