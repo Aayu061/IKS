@@ -1621,14 +1621,19 @@ OUTPUT: Syllables, weights, total m\u0101tr\u0101s, detected classical meter
       volVal.textContent = `${volPercent}%`;
       rhythmSynth.setVolume(volPercent / 100);
     });
+    masterStopBtn.style.display = "none";
     masterPlayBtn.addEventListener("click", () => {
       const gayatriPattern = ["L", "L", "G", "G", "G", "G", "L", "G", "G", "L", "G", "G", "L", "L", "G", "L"];
       if (metronomeDock) metronomeDock.classList.add("sequence-playing");
       if (soundWaveBars) soundWaveBars.classList.add("active");
+      masterStopBtn.style.display = "";
+      masterPlayBtn.style.display = "none";
       rhythmSynth.playSequence(gayatriPattern, null, () => {
         document.getElementById("master-play-text").textContent = "Audition G\u0101yatr\u012B";
         if (metronomeDock) metronomeDock.classList.remove("sequence-playing");
         if (soundWaveBars) soundWaveBars.classList.remove("active");
+        masterStopBtn.style.display = "none";
+        masterPlayBtn.style.display = "";
       });
       document.getElementById("master-play-text").textContent = "Playing...";
     });
@@ -1637,6 +1642,8 @@ OUTPUT: Syllables, weights, total m\u0101tr\u0101s, detected classical meter
       document.getElementById("master-play-text").textContent = "Audition G\u0101yatr\u012B";
       if (metronomeDock) metronomeDock.classList.remove("sequence-playing");
       if (soundWaveBars) soundWaveBars.classList.remove("active");
+      masterStopBtn.style.display = "none";
+      masterPlayBtn.style.display = "";
     });
   }
   function initHeroBits() {

@@ -692,12 +692,13 @@ h1, h2, h3, .serif-font {
   position: relative;
   width: 100%;
   max-width: 100vw;
-  /* Tall enough for the canvas to breathe */
-  min-height: 520px;
+  /* Visible on laptop screens without scrolling */
+  min-height: 400px;
   margin: 0 auto 0 auto;
   padding: 0;
   text-align: center;
   overflow: hidden;
+
 }
 
 /* The 3D canvas fills the full hero area */
@@ -717,9 +718,10 @@ h1, h2, h3, .serif-font {
   z-index: 1;
   max-width: 1000px;
   margin: 0 auto;
-  padding: 3.5rem 1.5rem 2.5rem 1.5rem;
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
   pointer-events: auto;
 }
+
 
 /* Allow mouse interaction on the canvas itself for ripple clicks */
 .hero-section:hover #hero-3d-canvas {

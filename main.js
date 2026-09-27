@@ -256,15 +256,22 @@ function initMetronomeDock() {
     rhythmSynth.setVolume(volPercent / 100);
   });
 
+  // Initially hide the Stop button — show only when playing
+  masterStopBtn.style.display = 'none';
+
   masterPlayBtn.addEventListener('click', () => {
     const gayatriPattern = ['L', 'L', 'G', 'G', 'G', 'G', 'L', 'G', 'G', 'L', 'G', 'G', 'L', 'L', 'G', 'L'];
     if (metronomeDock) metronomeDock.classList.add('sequence-playing');
     if (soundWaveBars) soundWaveBars.classList.add('active');
+    masterStopBtn.style.display = '';
+    masterPlayBtn.style.display = 'none';
 
     rhythmSynth.playSequence(gayatriPattern, null, () => {
       document.getElementById('master-play-text').textContent = 'Audition Gāyatrī';
       if (metronomeDock) metronomeDock.classList.remove('sequence-playing');
       if (soundWaveBars) soundWaveBars.classList.remove('active');
+      masterStopBtn.style.display = 'none';
+      masterPlayBtn.style.display = '';
     });
     document.getElementById('master-play-text').textContent = 'Playing...';
   });
@@ -274,6 +281,8 @@ function initMetronomeDock() {
     document.getElementById('master-play-text').textContent = 'Audition Gāyatrī';
     if (metronomeDock) metronomeDock.classList.remove('sequence-playing');
     if (soundWaveBars) soundWaveBars.classList.remove('active');
+    masterStopBtn.style.display = 'none';
+    masterPlayBtn.style.display = '';
   });
 }
 
