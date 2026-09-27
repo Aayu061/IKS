@@ -1,0 +1,25 @@
+{
+  "name": "pingala-chandahsastra-studio",
+  "version": "1.0.0",
+  "description": "Piṅgala's Chandaḥśāstra as Binary Encoding & Combinatorial Generation - IKS in Computational Systems",
+  "type": "module",
+  "scripts": {
+    "build": "npx esbuild main.js --bundle --outfile=bundle.js --format=iife",
+    "test": "node -e \"import('./src/test/test-runner.js').then(m => { const res = m.executeTestSuite(); console.log(JSON.stringify(res, null, 2)); })\"",
+    "serve": "npx -y serve -l 3000 .",
+    "dev": "npx -y serve -l 3000 ."
+  },
+  "keywords": [
+    "iks",
+    "pingala",
+    "chandahsastra",
+    "binary-system",
+    "combinatorics",
+    "pascal-triangle",
+    "meru-prastara",
+    "fibonacci",
+    "sanskrit-scansion"
+  ],
+  "author": "IKS Computational Systems Team",
+  "license": "MIT"
+}
