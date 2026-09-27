@@ -1218,6 +1218,223 @@ OUTPUT: Syllables, weights, total m\u0101tr\u0101s, detected classical meter
     }
   };
 
+  // src/fx/hero-3d-canvas.js
+  var GLYPHS = ["0", "1", "\u222A", "\u2014", "\u0966", "\u0967", "\u0968", "\u0969"];
+  var N_PARTICLES = 180;
+  var FIELD_W = 1400;
+  var FIELD_H = 600;
+  var FIELD_D = 900;
+  var FOV_FACTOR = 700;
+  var LINK_DIST = 90;
+  var TILT_MAX = 0.28;
+  var SHOCK_RADIUS = 220;
+  var SHOCK_FORCE = 5.5;
+  function initHero3DCanvas() {
+    const canvas = document.getElementById("hero-3d-canvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let W = 0, H = 0;
+    let camYaw = 0;
+    let camPitch = 0;
+    let targetYaw = 0;
+    let targetPitch = 0;
+    const shockwaves = [];
+    const particles = [];
+    function createParticle(i) {
+      return {
+        // 3D position (centered at origin)
+        x: (Math.random() - 0.5) * FIELD_W,
+        y: (Math.random() - 0.5) * FIELD_H,
+        z: (Math.random() - 0.5) * FIELD_D,
+        // Velocity
+        vx: (Math.random() - 0.5) * 0.22,
+        vy: (Math.random() - 0.5) * 0.18,
+        vz: (Math.random() - 0.5) * 0.2,
+        // Visual
+        glyph: GLYPHS[Math.floor(Math.random() * GLYPHS.length)],
+        size: 10 + Math.random() * 14,
+        opacity: 0.12 + Math.random() * 0.4,
+        colorIdx: Math.floor(Math.random() * 3),
+        // 0=saffron 1=teal 2=muted
+        // Phase for individual pulsing
+        phase: Math.random() * Math.PI * 2,
+        pulseSpeed: 8e-3 + Math.random() * 0.012
+      };
+    }
+    for (let i = 0; i < N_PARTICLES; i++) {
+      particles.push(createParticle(i));
+    }
+    function getColors() {
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      return {
+        saffron: isDark ? "rgba(224,149,69," : "rgba(200,118,34,",
+        teal: isDark ? "rgba(74,222,128," : "rgba(34,81,71,",
+        muted: isDark ? "rgba(154,164,159," : "rgba(94,104,98,",
+        link: isDark ? "rgba(74,222,128," : "rgba(34,81,71,"
+      };
+    }
+    function resize() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      W = rect.width;
+      H = rect.height;
+      canvas.width = W * devicePixelRatio;
+      canvas.height = H * devicePixelRatio;
+      canvas.style.width = W + "px";
+      canvas.style.height = H + "px";
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+    }
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas.parentElement);
+    resize();
+    function project(x, y, z) {
+      const cosY = Math.cos(camYaw), sinY = Math.sin(camYaw);
+      const cosP = Math.cos(camPitch), sinP = Math.sin(camPitch);
+      const x1 = x * cosY + z * sinY;
+      const z1 = -x * sinY + z * cosY;
+      const y1 = y;
+      const y2 = y1 * cosP - z1 * sinP;
+      const z2 = y1 * sinP + z1 * cosP;
+      const scale = FOV_FACTOR / (FOV_FACTOR + z2);
+      return {
+        sx: W / 2 + x1 * scale,
+        sy: H / 2 + y2 * scale,
+        scale,
+        z: z2
+        // for depth-based opacity/size
+      };
+    }
+    function onMouseMove(e) {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const nx = (e.clientX - rect.left) / rect.width - 0.5;
+      const ny = (e.clientY - rect.top) / rect.height - 0.5;
+      targetYaw = nx * TILT_MAX * 2;
+      targetPitch = -ny * TILT_MAX;
+    }
+    function onMouseLeave() {
+      targetYaw = 0;
+      targetPitch = 0;
+    }
+    function onClick(e) {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      const x3d = (sx - W / 2) / (FOV_FACTOR / FOV_FACTOR);
+      const y3d = (sy - H / 2) / (FOV_FACTOR / FOV_FACTOR);
+      shockwaves.push({ x: x3d, y: y3d, z: 0, age: 0, maxAge: 60 });
+    }
+    const section = canvas.parentElement;
+    section.addEventListener("mousemove", onMouseMove, { passive: true });
+    section.addEventListener("mouseleave", onMouseLeave, { passive: true });
+    section.addEventListener("click", onClick, { passive: true });
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let rafId;
+    let tick = 0;
+    function draw() {
+      rafId = requestAnimationFrame(draw);
+      tick++;
+      camYaw += (targetYaw - camYaw) * 0.06;
+      camPitch += (targetPitch - camPitch) * 0.06;
+      ctx.clearRect(0, 0, W, H);
+      const colors = getColors();
+      shockwaves.forEach((sw) => {
+        sw.age++;
+        if (sw.age > sw.maxAge) return;
+        const t = sw.age / sw.maxAge;
+        const force = SHOCK_FORCE * (1 - t) * (1 - t);
+        particles.forEach((p) => {
+          const dx = p.x - sw.x;
+          const dy = p.y - sw.y;
+          const dz = p.z - sw.z;
+          const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (d < SHOCK_RADIUS && d > 0.1) {
+            const f = force / d;
+            p.vx += dx * f * 0.03;
+            p.vy += dy * f * 0.03;
+            p.vz += dz * f * 0.03;
+          }
+        });
+      });
+      for (let i = shockwaves.length - 1; i >= 0; i--) {
+        if (shockwaves[i].age > shockwaves[i].maxAge) shockwaves.splice(i, 1);
+      }
+      if (!prefersReducedMotion) {
+        particles.forEach((p) => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.z += p.vz;
+          p.vx *= 0.992;
+          p.vy *= 0.992;
+          p.vz *= 0.992;
+          if (p.x > FIELD_W / 2) p.x = -FIELD_W / 2;
+          if (p.x < -FIELD_W / 2) p.x = FIELD_W / 2;
+          if (p.y > FIELD_H / 2) p.y = -FIELD_H / 2;
+          if (p.y < -FIELD_H / 2) p.y = FIELD_H / 2;
+          if (p.z > FIELD_D / 2) p.z = -FIELD_D / 2;
+          if (p.z < -FIELD_D / 2) p.z = FIELD_D / 2;
+          p.phase += p.pulseSpeed;
+        });
+      }
+      const projected = particles.map((p) => ({
+        p,
+        ...project(p.x, p.y, p.z)
+      }));
+      projected.sort((a, b) => a.z - b.z);
+      const colorArr = [colors.saffron, colors.teal, colors.muted];
+      for (let i = 0; i < projected.length; i++) {
+        const a = projected[i];
+        if (a.sx < -50 || a.sx > W + 50 || a.sy < -50 || a.sy > H + 50) continue;
+        for (let j = i + 1; j < projected.length; j++) {
+          const b = projected[j];
+          const dx = a.sx - b.sx;
+          const dy = a.sy - b.sy;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < LINK_DIST) {
+            const alpha = (1 - dist / LINK_DIST) * 0.1 * Math.min(a.p.opacity, b.p.opacity);
+            ctx.beginPath();
+            ctx.moveTo(a.sx, a.sy);
+            ctx.lineTo(b.sx, b.sy);
+            ctx.strokeStyle = colorArr[a.p.colorIdx] + alpha + ")";
+            ctx.lineWidth = 0.7;
+            ctx.stroke();
+          }
+        }
+      }
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      projected.forEach(({ p, sx, sy, scale, z }) => {
+        if (sx < -60 || sx > W + 60 || sy < -60 || sy > H + 60) return;
+        const depthAlpha = Math.max(0.05, Math.min(1, (z + FIELD_D / 2) / FIELD_D));
+        const pulse = 0.85 + 0.15 * Math.sin(p.phase);
+        const finalAlpha = p.opacity * depthAlpha * pulse;
+        const fontSize = p.size * scale * 1.1;
+        ctx.font = `${Math.max(7, fontSize)}px 'JetBrains Mono', monospace`;
+        const color = colorArr[p.colorIdx];
+        ctx.fillStyle = color + finalAlpha + ")";
+        ctx.fillText(p.glyph, sx, sy);
+      });
+      shockwaves.forEach((sw) => {
+        const t = sw.age / sw.maxAge;
+        if (t >= 1) return;
+        const proj = project(sw.x, sw.y, sw.z);
+        const radius = SHOCK_RADIUS * t * proj.scale;
+        const alpha = (1 - t) * 0.25;
+        ctx.beginPath();
+        ctx.arc(proj.sx, proj.sy, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = colors.saffron + alpha + ")";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+    }
+    draw();
+    window.addEventListener("pagehide", () => {
+      cancelAnimationFrame(rafId);
+      ro.disconnect();
+      section.removeEventListener("mousemove", onMouseMove);
+      section.removeEventListener("mouseleave", onMouseLeave);
+      section.removeEventListener("click", onClick);
+    });
+  }
+
   // main.js
   var state = {
     theme: localStorage.getItem("iks_theme") || "light",
@@ -1255,6 +1472,7 @@ OUTPUT: Syllables, weights, total m\u0101tr\u0101s, detected classical meter
     initThemeSystem();
     initMetronomeDock();
     initHeroBits();
+    initHero3DCanvas();
     initTabNavigation();
     initPrastaraModule();
     initNastamUddistamModule();

@@ -11,6 +11,7 @@ import { scanSanskritVerse } from './src/core/scansion-engine.js';
 import { rhythmSynth } from './src/audio/rhythm-synth.js';
 import { executeTestSuite } from './src/test/test-runner.js';
 import { ALGORITHM_SPECS } from './src/core/algorithms-data.js';
+import { initHero3DCanvas } from './src/fx/hero-3d-canvas.js';
 
 // Central Reactive Application State
 const state = {
@@ -52,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initThemeSystem();
   initMetronomeDock();
   initHeroBits();
+  initHero3DCanvas();      // ← 3D interactive background
   initTabNavigation();
   initPrastaraModule();
   initNastamUddistamModule();
