@@ -1152,8 +1152,31 @@ OUTPUT: Syllables, weights, total m\u0101tr\u0101s, detected classical meter
     initFibonacciModule();
     initTestModule();
     initModalAndHeaderActions();
+    initScrollReveal();
     runTestSuiteAndRender();
   });
+  function initScrollReveal() {
+    const targets = document.querySelectorAll(
+      ".card, .control-card, .display-card, .pane-header, .hero-interactive-strip, .knuth-citation-banner, .fibonacci-callout-card, .complexity-card"
+    );
+    targets.forEach((el, i) => {
+      el.classList.add("reveal");
+      const delay = Math.min(i * 0.04, 0.24);
+      el.style.transitionDelay = `${delay}s`;
+    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: "0px 0px -32px 0px" }
+    );
+    targets.forEach((el) => observer.observe(el));
+  }
   function initThemeSystem() {
     const radioInputs = document.querySelectorAll('input[name="theme-mode"]');
     const slideLabels = document.querySelectorAll(".theme-slide-btn");

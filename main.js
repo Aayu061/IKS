@@ -61,10 +61,46 @@ document.addEventListener('DOMContentLoaded', () => {
   initFibonacciModule();
   initTestModule();
   initModalAndHeaderActions();
+  initScrollReveal();
 
   // Run test suite once in background to initialize status badge
   runTestSuiteAndRender();
 });
+
+/* -------------------------------------------------------------
+ * SCROLL REVEAL — Fade-in-up cards/sections on viewport entry
+ * ------------------------------------------------------------- */
+function initScrollReveal() {
+  // Add .reveal class to all cards and pane headers
+  const targets = document.querySelectorAll(
+    '.card, .control-card, .display-card, .pane-header, ' +
+    '.hero-interactive-strip, .knuth-citation-banner, ' +
+    '.fibonacci-callout-card, .complexity-card'
+  );
+
+  targets.forEach((el, i) => {
+    el.classList.add('reveal');
+    // Stagger siblings with modest delay caps
+    const delay = Math.min(i * 0.04, 0.24);
+    el.style.transitionDelay = `${delay}s`;
+  });
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          // Unobserve after first reveal to avoid re-animating
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.08, rootMargin: '0px 0px -32px 0px' }
+  );
+
+  targets.forEach((el) => observer.observe(el));
+}
+
 
 /* -------------------------------------------------------------
 /* -------------------------------------------------------------
