@@ -1435,7 +1435,7 @@ OUTPUT: Syllables, weights, total m\u0101tr\u0101s, detected classical meter
     });
   }
 
-  // main.js
+  // src/main.js
   var state = {
     theme: localStorage.getItem("iks_theme") || "light",
     activeTab: "tab-prastara",

@@ -4,7 +4,7 @@
   "description": "Piṅgala's Chandaḥśāstra as Binary Encoding & Combinatorial Generation - IKS in Computational Systems",
   "type": "module",
   "scripts": {
-    "build": "npx esbuild main.js --bundle --outfile=bundle.js --format=iife",
+    "build": "npx esbuild src/main.js --bundle --outfile=dist/bundle.js --format=iife",
     "test": "node -e \"import('./src/test/test-runner.js').then(m => { const res = m.executeTestSuite(); console.log(JSON.stringify(res, null, 2)); })\"",
     "serve": "npx -y serve -l 3000 .",
     "dev": "npx -y serve -l 3000 ."

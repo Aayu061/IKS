@@ -24,12 +24,12 @@ In the 3rd–2nd century BCE, the Indian mathematician **Ācārya Piṅgala** au
 
 | Document | File Link | Purpose |
 | :--- | :--- | :--- |
-| **Product Requirements Document** | [`PRD.md`](file:///c:/Users/aayup/Desktop/IKS/PRD.md) | Problem statement, conceptual mapping table, formal algorithm specifications, 12 test cases, complexity, limitations & conclusion |
-| **UI/UX Design Specification** | [`DESIGN.md`](file:///c:/Users/aayup/Desktop/IKS/DESIGN.md) | "Vedic Cybernetics" design system, color palette, typography, glassmorphism, wireframes, sound synthesis, accessibility |
-| **Software Architecture & Math** | [`ARCHITECTURE.md`](file:///c:/Users/aayup/Desktop/IKS/ARCHITECTURE.md) | System architecture diagram, formal pseudocode, mathematical correctness proofs, state management & execution models |
+| **Product Requirements Document** | [`docs/PRD.md`](file:///c:/Users/aayup/Desktop/IKS/docs/PRD.md) | Problem statement, conceptual mapping table, formal algorithm specifications, 12 test cases, complexity, limitations & conclusion |
+| **UI/UX Design Specification** | [`docs/DESIGN.md`](file:///c:/Users/aayup/Desktop/IKS/docs/DESIGN.md) | "Vedic Cybernetics" design system, color palette, typography, glassmorphism, wireframes, sound synthesis, accessibility |
+| **Software Architecture & Math** | [`docs/ARCHITECTURE.md`](file:///c:/Users/aayup/Desktop/IKS/docs/ARCHITECTURE.md) | System architecture diagram, formal pseudocode, mathematical correctness proofs, state management & execution models |
 | **Interactive Application** | [`index.html`](file:///c:/Users/aayup/Desktop/IKS/index.html) | Semantic HTML5 single-page application with 6 interactive studios and modal drawer |
 | **Design System Styles** | [`index.css`](file:///c:/Users/aayup/Desktop/IKS/index.css) | Custom CSS with dark mode, glow effects, Meru pyramid styling, and animations |
-| **Application Controller** | [`main.js`](file:///c:/Users/aayup/Desktop/IKS/main.js) | Reactive state management, event orchestration, and module wiring |
+| **Application Controller** | [`src/main.js`](file:///c:/Users/aayup/Desktop/IKS/src/main.js) | Reactive state management, event orchestration, and module wiring |
 | **Automated Test Suite** | [`src/test/test-runner.js`](file:///c:/Users/aayup/Desktop/IKS/src/test/test-runner.js) | Automated runner verifying all 12 formal test cases with sub-millisecond benchmarks |
 
 ---

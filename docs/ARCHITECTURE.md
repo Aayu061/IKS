@@ -265,29 +265,32 @@ The runner iterates sequentially over all registered test cases, captures high-r
 
 ```
 c:/Users/aayup/Desktop/IKS/
-├── PRD.md                         # Product Requirements Document
-├── DESIGN.md                      # UI/UX & Design System Specification
-├── ARCHITECTURE.md                # System Architecture & Algorithms (This file)
 ├── index.html                     # Semantic HTML5 Application Shell
 ├── index.css                      # Vedic Cybernetics Design System & Animations
-├── main.js                        # App Lifecycle, Reactive State & Router
+├── package.json                   # Project Metadata & Build Scripts
+├── README.md                      # Academic Project Overview & Test Dashboard
+├── assets/
+│   └── pingala-logo.jpg           # Application Icon & Header Emblem
+├── dist/
+│   └── bundle.js                  # Production IIFE Bundle (esbuild)
+├── docs/
+│   ├── PRD.md                     # Product Requirements Document
+│   ├── DESIGN.md                  # UI/UX & Design System Specification
+│   └── ARCHITECTURE.md            # System Architecture & Algorithms (This file)
 └── src/
+    ├── main.js                    # App Lifecycle, Reactive State & Router
+    ├── audio/
+    │   └── rhythm-synth.js        # Web Audio API Oscillator & Metronome
     ├── core/
     │   ├── pingala-engine.js      # Prastāra, Naṣṭam, Uddiṣṭam, Saṅkhyā
     │   ├── meru-engine.js         # Dynamic Programming Binomial Pyramid
     │   ├── matra-fibonacci.js     # Virahāṅka-Hemachandra Compositions
-    │   └── scansion-engine.js     # Sanskrit NLP Syllabifier & Classifier
-    ├── audio/
-    │   └── rhythm-synth.js        # Web Audio API Oscillator & Metronome
-    ├── test/
-    │   └── test-runner.js         # Automated 12-Test Verification Suite
-    └── ui/
-        ├── prastara-view.js       # Combinatorial Grid & CSV/JSON Export
-        ├── nastam-view.js         # Step-by-Step Conversion Visualizer
-        ├── meru-view.js           # Interactive Pascal/Meru DP Pyramid
-        ├── scansion-view.js       # Verse Parser & Classical Meters
-        ├── fibonacci-view.js      # Mātrā Rhythmic Partition Tree
-        └── test-view.js           # Live Viva Test Runner Dashboard
+    │   ├── scansion-engine.js     # Sanskrit NLP Syllabifier & Classifier
+    │   └── algorithms-data.js     # IKS Mathematical Metadata & Pseudocode
+    ├── fx/
+    │   └── hero-3d-canvas.js      # 3D Interactive Meru Mesh & Particle Field
+    └── test/
+        └── test-runner.js         # Automated 12-Test Verification Suite
 ```
 
 ---

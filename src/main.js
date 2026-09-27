@@ -4,14 +4,14 @@
  * Features: Dual Theme Switcher, Studio Metronome Dock, Step-by-Step Stepper, and Method Tab.
  */
 
-import { generatePrastara, pingalaNastam, pingalaUddistam, pingalaSankhya } from './src/core/pingala-engine.js';
-import { generateMeruPrastara, binomialCoefficient, getLaghvaksharaDistribution } from './src/core/meru-engine.js';
-import { generateMatraCompositions, getVirahankaSequence } from './src/core/matra-fibonacci.js';
-import { scanSanskritVerse } from './src/core/scansion-engine.js';
-import { rhythmSynth } from './src/audio/rhythm-synth.js';
-import { executeTestSuite } from './src/test/test-runner.js';
-import { ALGORITHM_SPECS } from './src/core/algorithms-data.js';
-import { initHero3DCanvas } from './src/fx/hero-3d-canvas.js';
+import { generatePrastara, pingalaNastam, pingalaUddistam, pingalaSankhya } from './core/pingala-engine.js';
+import { generateMeruPrastara, binomialCoefficient, getLaghvaksharaDistribution } from './core/meru-engine.js';
+import { generateMatraCompositions, getVirahankaSequence } from './core/matra-fibonacci.js';
+import { scanSanskritVerse } from './core/scansion-engine.js';
+import { rhythmSynth } from './audio/rhythm-synth.js';
+import { executeTestSuite } from './test/test-runner.js';
+import { ALGORITHM_SPECS } from './core/algorithms-data.js';
+import { initHero3DCanvas } from './fx/hero-3d-canvas.js';
 
 // Central Reactive Application State
 const state = {
