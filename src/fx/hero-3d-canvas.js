@@ -16,26 +16,26 @@
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-const GLYPHS = ['0', '1', '∪', '—', '०', '१', '२', '३'];
+const GLYPHS = ['0', '1', '∪', '—', '०', '१', '२', '३', '✦', '•'];
 
 // Particle count and 3D field dimensions
-const N_PARTICLES  = 180;
-const FIELD_W      = 1400; // half-extents in virtual 3D units
-const FIELD_H      = 600;
-const FIELD_D      = 900;
+const N_PARTICLES  = 210;
+const FIELD_W      = 1450; // half-extents in virtual 3D units
+const FIELD_H      = 620;
+const FIELD_D      = 920;
 
 // Camera / projection
 const FOV_FACTOR   = 700; // perspective divisor (higher = less distortion)
 
 // Connection line max distance (projected 2D px)
-const LINK_DIST    = 90;
+const LINK_DIST    = 105;
 
 // Mouse tilt max angle (radians)
 const TILT_MAX     = 0.28;
 
 // Shockwave
-const SHOCK_RADIUS = 220; // virtual 3D units — push radius
-const SHOCK_FORCE  = 5.5;
+const SHOCK_RADIUS = 240; // virtual 3D units — push radius
+const SHOCK_FORCE  = 6.5;
 
 export function initHero3DCanvas() {
   const canvas = document.getElementById('hero-3d-canvas');
@@ -57,23 +57,25 @@ export function initHero3DCanvas() {
   const particles = [];
 
   function createParticle(i) {
+    const isNode = i % 5 === 0; // 20% are sparkling constellation nodes
     return {
       // 3D position (centered at origin)
       x: (Math.random() - 0.5) * FIELD_W,
       y: (Math.random() - 0.5) * FIELD_H,
       z: (Math.random() - 0.5) * FIELD_D,
       // Velocity
-      vx: (Math.random() - 0.5) * 0.22,
-      vy: (Math.random() - 0.5) * 0.18,
-      vz: (Math.random() - 0.5) * 0.20,
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: (Math.random() - 0.5) * 0.20,
+      vz: (Math.random() - 0.5) * 0.22,
       // Visual
-      glyph: GLYPHS[Math.floor(Math.random() * GLYPHS.length)],
-      size: 10 + Math.random() * 14,
-      opacity: 0.12 + Math.random() * 0.40,
-      colorIdx: Math.floor(Math.random() * 3), // 0=saffron 1=teal 2=muted
+      isNode,
+      glyph: isNode ? '•' : GLYPHS[Math.floor(Math.random() * GLYPHS.length)],
+      size: isNode ? (7 + Math.random() * 6) : (13 + Math.random() * 15),
+      opacity: 0.55 + Math.random() * 0.42, // High vibrant opacity (0.55 - 0.97)
+      colorIdx: Math.floor(Math.random() * 4), // 0=saffron 1=gold 2=teal 3=cyan/indigo
       // Phase for individual pulsing
       phase: Math.random() * Math.PI * 2,
-      pulseSpeed: 0.008 + Math.random() * 0.012,
+      pulseSpeed: 0.010 + Math.random() * 0.015,
     };
   }
 
@@ -85,10 +87,23 @@ export function initHero3DCanvas() {
   function getColors() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     return {
-      saffron: isDark ? 'rgba(224,149,69,'  : 'rgba(200,118,34,',
-      teal:    isDark ? 'rgba(74,222,128,'  : 'rgba(34,81,71,',
-      muted:   isDark ? 'rgba(154,164,159,' : 'rgba(94,104,98,',
-      link:    isDark ? 'rgba(74,222,128,'  : 'rgba(34,81,71,',
+      isDark,
+      saffron: isDark ? 'rgba(255,180,60,'  : 'rgba(230,85,15,',
+      gold:    isDark ? 'rgba(255,220,75,'  : 'rgba(217,119,6,',
+      teal:    isDark ? 'rgba(52,211,153,'  : 'rgba(13,148,136,',
+      accent:  isDark ? 'rgba(56,189,248,'  : 'rgba(79,70,229,',
+      link:    isDark ? 'rgba(74,222,128,'  : 'rgba(20,184,166,',
+      glowColors: isDark ? [
+        'rgba(255,180,60,0.85)',
+        'rgba(255,220,75,0.90)',
+        'rgba(52,211,153,0.85)',
+        'rgba(56,189,248,0.85)'
+      ] : [
+        'rgba(230,85,15,0.30)',
+        'rgba(217,119,6,0.30)',
+        'rgba(13,148,136,0.25)',
+        'rgba(79,70,229,0.25)'
+      ]
     };
   }
 
@@ -246,7 +261,7 @@ export function initHero3DCanvas() {
     projected.sort((a, b) => a.z - b.z);
 
     // ── Draw connection lines ─────────────────────────────────────────────
-    const colorArr = [colors.saffron, colors.teal, colors.muted];
+    const colorArr = [colors.saffron, colors.gold, colors.teal, colors.accent];
 
     for (let i = 0; i < projected.length; i++) {
       const a = projected[i];
@@ -258,50 +273,91 @@ export function initHero3DCanvas() {
         const dy = a.sy - b.sy;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < LINK_DIST) {
-          const alpha = (1 - dist / LINK_DIST) * 0.10 * Math.min(a.p.opacity, b.p.opacity);
+          const alpha = (1 - dist / LINK_DIST) * (colors.isDark ? 0.35 : 0.28) * Math.min(1, Math.max(a.p.opacity, b.p.opacity));
           ctx.beginPath();
           ctx.moveTo(a.sx, a.sy);
           ctx.lineTo(b.sx, b.sy);
           ctx.strokeStyle = colorArr[a.p.colorIdx] + alpha + ')';
-          ctx.lineWidth = 0.7;
+          ctx.lineWidth = colors.isDark ? 0.9 : 1.1;
           ctx.stroke();
         }
       }
     }
 
-    // ── Draw glyphs ───────────────────────────────────────────────────────
+    // ── Draw glyphs & sparkling nodes ─────────────────────────────────────
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
 
     projected.forEach(({ p, sx, sy, scale, z }) => {
       if (sx < -60 || sx > W + 60 || sy < -60 || sy > H + 60) return;
 
-      // Depth fade: particles far back are more transparent
-      const depthAlpha = Math.max(0.05, Math.min(1, (z + FIELD_D / 2) / FIELD_D));
+      // Depth fade: particles far back are still comfortably visible (0.40 - 1.0)
+      const depthRatio = Math.max(0, Math.min(1, (z + FIELD_D / 2) / FIELD_D));
+      const depthAlpha = 0.40 + 0.60 * depthRatio;
       // Individual pulse
-      const pulse = 0.85 + 0.15 * Math.sin(p.phase);
-      const finalAlpha = p.opacity * depthAlpha * pulse;
-
-      const fontSize = p.size * scale * 1.1;
-      ctx.font = `${Math.max(7, fontSize)}px 'JetBrains Mono', monospace`;
+      const pulse = 0.88 + 0.12 * Math.sin(p.phase);
+      const finalAlpha = Math.min(1, p.opacity * depthAlpha * pulse);
 
       const color = colorArr[p.colorIdx];
-      ctx.fillStyle = color + finalAlpha + ')';
-      ctx.fillText(p.glyph, sx, sy);
+      const glow = colors.glowColors[p.colorIdx];
+
+      // Set neon shadow blur in dark mode, subtle warm crisp shadow in light mode
+      if (colors.isDark) {
+        ctx.shadowColor = glow;
+        ctx.shadowBlur = Math.min(16, 5 + scale * 9);
+      } else {
+        ctx.shadowColor = 'rgba(217, 119, 6, 0.28)';
+        ctx.shadowBlur = Math.min(6, 1 + scale * 4);
+      }
+
+      if (p.isNode) {
+        // Draw sparkling circular constellation node
+        const r = Math.max(1.8, (p.size * scale) * 0.4);
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fillStyle = color + finalAlpha + ')';
+        ctx.fill();
+      } else {
+        // Draw bold text glyph
+        const fontSize = p.size * scale * 1.15;
+        ctx.font = `600 ${Math.max(9, fontSize)}px 'JetBrains Mono', monospace`;
+        ctx.fillStyle = color + finalAlpha + ')';
+        ctx.fillText(p.glyph, sx, sy);
+      }
     });
 
-    // ── Draw shockwave rings ──────────────────────────────────────────────
+    // Reset shadow after particles to prevent bleed
+    ctx.shadowBlur = 0;
+
+    // ── Draw shockwave rings (bright energetic double ripple) ───────────────
     shockwaves.forEach((sw) => {
       const t = sw.age / sw.maxAge;
       if (t >= 1) return;
       const proj = project(sw.x, sw.y, sw.z);
       const radius = SHOCK_RADIUS * t * proj.scale;
-      const alpha = (1 - t) * 0.25;
+      const alphaOuter = (1 - t) * 0.70;
+      const alphaInner = (1 - t) * 0.90;
+
+      if (colors.isDark) {
+        ctx.shadowColor = 'rgba(251, 191, 36, 0.85)';
+        ctx.shadowBlur = 14;
+      }
+
+      // Outer ripple
       ctx.beginPath();
       ctx.arc(proj.sx, proj.sy, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = colors.saffron + alpha + ')';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = colors.saffron + alphaOuter + ')';
+      ctx.lineWidth = 2.2;
       ctx.stroke();
+
+      // Inner concentrated core
+      ctx.beginPath();
+      ctx.arc(proj.sx, proj.sy, radius * 0.92, 0, Math.PI * 2);
+      ctx.strokeStyle = colors.gold + alphaInner + ')';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
     });
   }
 
